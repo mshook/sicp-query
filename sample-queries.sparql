@@ -1,0 +1,313 @@
+# SPARQL Queries for Microshaft Database
+# These queries correspond to common query patterns from the SICP query system
+
+PREFIX : <http://example.org/microshaft/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org: <http://www.w3.org/ns/org#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+# ============================================================================
+# BASIC QUERIES - Corresponding to simple pattern matching
+# ============================================================================
+
+# Query 1: Find all computer programmers
+# Scheme equivalent: (job ?x (computer programmer))
+SELECT ?person ?name
+WHERE {
+    ?person :hasJob :Job_ComputerProgrammer ;
+            foaf:name ?name .
+}
+
+# Query 2: Find all people with computer-related jobs and their addresses
+# Scheme equivalent: (and (job ?person (computer . ?type)) (address ?person ?where))
+SELECT ?name ?jobTitle ?city ?street ?streetNumber
+WHERE {
+    ?person foaf:name ?name ;
+            :hasJob ?job ;
+            :hasAddress ?address .
+    ?job :jobTitle ?jobTitle ;
+         :jobTitle ?title .
+    FILTER(STRSTARTS(?title, "computer"))
+    ?address :city ?city ;
+             :street ?street .
+    OPTIONAL { ?address :streetNumber ?streetNumber }
+}
+
+# Query 3: Find all people and their salaries
+# Scheme equivalent: (salary ?person ?amount)
+SELECT ?name ?salary
+WHERE {
+    ?person foaf:name ?name ;
+            :salary ?salary .
+}
+ORDER BY DESC(?salary)
+
+# Query 4: Find addresses in a specific city
+# Scheme equivalent: (address ?person (Cambridge . ?rest))
+SELECT ?name ?street ?streetNumber
+WHERE {
+    ?person foaf:name ?name ;
+            :hasAddress ?address .
+    ?address :city "Cambridge" ;
+             :street ?street .
+    OPTIONAL { ?address :streetNumber ?streetNumber }
+}
+
+# ============================================================================
+# SUPERVISOR QUERIES - Using org:reportsTo relationship
+# ============================================================================
+
+# Query 5: Find all people who report to Ben Bitdiddle
+# Scheme equivalent: (supervisor ?person (Bitdiddle Ben))
+SELECT ?name ?jobTitle
+WHERE {
+    ?person foaf:name ?name ;
+            org:reportsTo :BenBitdiddle ;
+            :hasJob ?job .
+    ?job :jobTitle ?jobTitle .
+}
+
+# Query 6: Find Ben Bitdiddle's supervisor
+# Scheme equivalent: (supervisor (Bitdiddle Ben) ?supervisor)
+SELECT ?supervisorName
+WHERE {
+    :BenBitdiddle org:reportsTo ?supervisor .
+    ?supervisor foaf:name ?supervisorName .
+}
+
+# Query 7: Find all supervisor-subordinate pairs
+# Scheme equivalent: (supervisor ?subordinate ?supervisor)
+SELECT ?subordinateName ?supervisorName
+WHERE {
+    ?subordinate org:reportsTo ?supervisor ;
+                 foaf:name ?subordinateName .
+    ?supervisor foaf:name ?supervisorName .
+}
+
+# ============================================================================
+# LIVES-NEAR RULE - Finding people in the same city
+# ============================================================================
+
+# Query 8: Find people who live near Ben Bitdiddle (same city)
+# Scheme equivalent: (lives-near ?x (Bitdiddle Ben))
+# Rule: (lives-near ?person-1 ?person-2) when same city and different people
+SELECT ?name ?city
+WHERE {
+    :BenBitdiddle :hasAddress ?benAddress .
+    ?benAddress :city ?city .
+
+    ?person :hasAddress ?address ;
+            foaf:name ?name .
+    ?address :city ?city .
+
+    FILTER(?person != :BenBitdiddle)
+}
+
+# Query 9: Find all pairs of people who live near each other
+# Scheme equivalent: (lives-near ?person-1 ?person-2)
+SELECT ?name1 ?name2 ?city
+WHERE {
+    ?person1 :hasAddress ?address1 ;
+             foaf:name ?name1 .
+    ?address1 :city ?city .
+
+    ?person2 :hasAddress ?address2 ;
+             foaf:name ?name2 .
+    ?address2 :city ?city .
+
+    FILTER(?person1 < ?person2)  # Avoid duplicates and self-matches
+}
+ORDER BY ?city ?name1
+
+# ============================================================================
+# WHEEL RULE - Finding "big wheels" (managers of managers)
+# ============================================================================
+
+# Query 10: Find all "wheels" (people who supervise supervisors)
+# Scheme equivalent: (wheel ?person)
+# Rule: (wheel ?person) when ?person supervises someone who supervises someone
+SELECT DISTINCT ?wheelName ?jobTitle
+WHERE {
+    ?middleManager org:reportsTo ?wheel .
+    ?subordinate org:reportsTo ?middleManager .
+
+    ?wheel foaf:name ?wheelName ;
+           :hasJob ?job .
+    ?job :jobTitle ?jobTitle .
+}
+
+# ============================================================================
+# OUTRANKED-BY RULE - Transitive supervisor relationship
+# ============================================================================
+
+# Query 11: Find everyone outranked by Oliver Warbucks (direct or indirect)
+# Scheme equivalent: (outranked-by ?person (Warbucks Oliver))
+# Rule: Transitive closure of supervisor relationship
+SELECT ?subordinateName ?level
+WHERE {
+    :OliverWarbucks ^org:reportsTo+ ?subordinate .
+    ?subordinate foaf:name ?subordinateName .
+
+    # Calculate reporting level (distance in hierarchy)
+    {
+        SELECT ?subordinate (COUNT(?mid) AS ?level)
+        WHERE {
+            :OliverWarbucks ^org:reportsTo* ?mid .
+            ?mid ^org:reportsTo* ?subordinate .
+            ?mid org:reportsTo+ :OliverWarbucks .
+            FILTER(?subordinate != :OliverWarbucks)
+        }
+        GROUP BY ?subordinate
+    }
+}
+ORDER BY ?level ?subordinateName
+
+# Query 12: Find who outranks Louis Reasoner
+# Scheme equivalent: (outranked-by (Reasoner Louis) ?boss)
+SELECT ?bossName
+WHERE {
+    :LouisReasoner org:reportsTo+ ?boss .
+    ?boss foaf:name ?bossName .
+}
+
+# ============================================================================
+# CAN-DO-JOB QUERIES - Job capability relationships
+# ============================================================================
+
+# Query 13: Find what jobs a computer wizard can do
+# Scheme equivalent: (can-do-job (computer wizard) ?what)
+SELECT ?jobTitle
+WHERE {
+    :Job_ComputerWizard :canDoJob* ?job .
+    ?job :jobTitle ?jobTitle .
+    FILTER(?job != :Job_ComputerWizard)
+}
+
+# Query 14: Find people who could do a computer programmer trainee's job
+# (Either have that job or have a job that can do it)
+SELECT DISTINCT ?name ?actualJobTitle
+WHERE {
+    ?job :canDoJob* :Job_ComputerProgrammerTrainee .
+    ?person :hasJob ?job ;
+            foaf:name ?name .
+    ?job :jobTitle ?actualJobTitle .
+}
+
+# ============================================================================
+# COMPLEX QUERIES - Combining multiple conditions
+# ============================================================================
+
+# Query 15: Find computer programmers in Cambridge making more than 35000
+# Scheme equivalent:
+# (and (job ?person (computer programmer))
+#      (address ?person (Cambridge . ?rest))
+#      (salary ?person ?amount)
+#      (lisp-value > ?amount 35000))
+SELECT ?name ?salary ?street
+WHERE {
+    ?person :hasJob :Job_ComputerProgrammer ;
+            :hasAddress ?address ;
+            foaf:name ?name ;
+            :salary ?salary .
+
+    ?address :city "Cambridge" ;
+             :street ?street .
+
+    FILTER(?salary > 35000)
+}
+
+# Query 16: Find all people who live in the same city as their supervisor
+SELECT ?subordinateName ?supervisorName ?city
+WHERE {
+    ?subordinate org:reportsTo ?supervisor ;
+                 foaf:name ?subordinateName ;
+                 :hasAddress ?subAddress .
+
+    ?supervisor foaf:name ?supervisorName ;
+                :hasAddress ?supAddress .
+
+    ?subAddress :city ?city .
+    ?supAddress :city ?city .
+}
+
+# Query 17: Find people who make more than their supervisors
+# Scheme equivalent:
+# (and (supervisor ?person ?supervisor)
+#      (salary ?person ?amount1)
+#      (salary ?supervisor ?amount2)
+#      (lisp-value > ?amount1 ?amount2))
+SELECT ?subordinateName ?subSalary ?supervisorName ?supSalary
+WHERE {
+    ?subordinate org:reportsTo ?supervisor ;
+                 foaf:name ?subordinateName ;
+                 :salary ?subSalary .
+
+    ?supervisor foaf:name ?supervisorName ;
+                :salary ?supSalary .
+
+    FILTER(?subSalary > ?supSalary)
+}
+
+# Query 18: Find the organizational hierarchy starting from Oliver Warbucks
+# Shows depth in the tree
+SELECT ?name ?jobTitle ?level
+WHERE {
+    {
+        BIND(:OliverWarbucks AS ?person)
+        BIND(0 AS ?level)
+    }
+    UNION
+    {
+        :OliverWarbucks ^org:reportsTo ?person .
+        BIND(1 AS ?level)
+    }
+    UNION
+    {
+        :OliverWarbucks ^org:reportsTo/^org:reportsTo ?person .
+        BIND(2 AS ?level)
+    }
+    UNION
+    {
+        :OliverWarbucks ^org:reportsTo/^org:reportsTo/^org:reportsTo ?person .
+        BIND(3 AS ?level)
+    }
+
+    ?person foaf:name ?name ;
+            :hasJob ?job .
+    ?job :jobTitle ?jobTitle .
+}
+ORDER BY ?level ?name
+
+# ============================================================================
+# AGGREGATION QUERIES - Statistics and summaries
+# ============================================================================
+
+# Query 19: Count employees by job title
+SELECT ?jobTitle (COUNT(?person) AS ?count) (AVG(?salary) AS ?avgSalary)
+WHERE {
+    ?person :hasJob ?job ;
+            :salary ?salary .
+    ?job :jobTitle ?jobTitle .
+}
+GROUP BY ?jobTitle
+ORDER BY DESC(?count)
+
+# Query 20: Find the salary range by city
+SELECT ?city (MIN(?salary) AS ?minSalary) (MAX(?salary) AS ?maxSalary)
+       (AVG(?salary) AS ?avgSalary) (COUNT(?person) AS ?employees)
+WHERE {
+    ?person :hasAddress ?address ;
+            :salary ?salary .
+    ?address :city ?city .
+}
+GROUP BY ?city
+ORDER BY ?city
+
+# Query 21: Find department sizes (by top-level supervisor's direct reports)
+SELECT ?supervisorName (COUNT(?subordinate) AS ?directReports)
+WHERE {
+    ?subordinate org:reportsTo ?supervisor .
+    ?supervisor foaf:name ?supervisorName .
+}
+GROUP BY ?supervisor ?supervisorName
+ORDER BY DESC(?directReports)

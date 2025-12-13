@@ -1,0 +1,199 @@
+@prefix : <http://example.org/microshaft/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix org: <http://www.w3.org/ns/org#> .
+
+# Person Individuals
+
+:BenBitdiddle a foaf:Person ;
+    foaf:name "Ben Bitdiddle" ;
+    :hasAddress :Address_BenBitdiddle ;
+    :hasJob :Job_ComputerWizard ;
+    :salary 60000 ;
+    org:reportsTo :OliverWarbucks .
+
+:AlyssaPHacker a foaf:Person ;
+    foaf:name "Alyssa P Hacker" ;
+    :hasAddress :Address_AlyssaPHacker ;
+    :hasJob :Job_ComputerProgrammer ;
+    :salary 40000 ;
+    org:reportsTo :BenBitdiddle .
+
+:CyDFect a foaf:Person ;
+    foaf:name "Cy D Fect" ;
+    :hasAddress :Address_CyDFect ;
+    :hasJob :Job_ComputerProgrammer ;
+    :salary 35000 ;
+    org:reportsTo :BenBitdiddle .
+
+:LemETweakit a foaf:Person ;
+    foaf:name "Lem E Tweakit" ;
+    :hasAddress :Address_LemETweakit ;
+    :hasJob :Job_ComputerTechnician ;
+    :salary 25000 ;
+    org:reportsTo :BenBitdiddle .
+
+:LouisReasoner a foaf:Person ;
+    foaf:name "Louis Reasoner" ;
+    :hasAddress :Address_LouisReasoner ;
+    :hasJob :Job_ComputerProgrammerTrainee ;
+    :salary 30000 ;
+    org:reportsTo :AlyssaPHacker .
+
+:OliverWarbucks a foaf:Person ;
+    foaf:name "Oliver Warbucks" ;
+    :hasAddress :Address_OliverWarbucks ;
+    :hasJob :Job_AdministrationBigWheel ;
+    :salary 150000 .
+
+:EbenScrooge a foaf:Person ;
+    foaf:name "Eben Scrooge" ;
+    :hasAddress :Address_EbenScrooge ;
+    :hasJob :Job_AccountingChiefAccountant ;
+    :salary 75000 ;
+    org:reportsTo :OliverWarbucks .
+
+:RobertCratchet a foaf:Person ;
+    foaf:name "Robert Cratchet" ;
+    :hasAddress :Address_RobertCratchet ;
+    :hasJob :Job_AccountingScrivener ;
+    :salary 18000 ;
+    org:reportsTo :EbenScrooge .
+
+:DeWittAull a foaf:Person ;
+    foaf:name "DeWitt Aull" ;
+    :hasAddress :Address_DeWittAull ;
+    :hasJob :Job_AdministrationSecretary ;
+    :salary 25000 ;
+    org:reportsTo :OliverWarbucks .
+
+# Address Individuals
+
+:Address_BenBitdiddle a :Address ;
+    :city "Slumerville" ;
+    :street "Ridge Road" ;
+    :streetNumber 10 .
+
+:Address_AlyssaPHacker a :Address ;
+    :city "Cambridge" ;
+    :street "Mass Ave" ;
+    :streetNumber 78 .
+
+:Address_CyDFect a :Address ;
+    :city "Cambridge" ;
+    :street "Ames Street" ;
+    :streetNumber 3 .
+
+:Address_LemETweakit a :Address ;
+    :city "Boston" ;
+    :street "Bay State Road" ;
+    :streetNumber 22 .
+
+:Address_LouisReasoner a :Address ;
+    :city "Slumerville" ;
+    :street "Pine Tree Road" ;
+    :streetNumber 80 .
+
+:Address_OliverWarbucks a :Address ;
+    :city "Swellesley" ;
+    :street "Top Heap Road" .
+
+:Address_EbenScrooge a :Address ;
+    :city "Weston" ;
+    :street "Shady Lane" ;
+    :streetNumber 10 .
+
+:Address_RobertCratchet a :Address ;
+    :city "Allston" ;
+    :street "N Harvard Street" ;
+    :streetNumber 16 .
+
+:Address_DeWittAull a :Address ;
+    :city "Slumerville" ;
+    :street "Onion Square" ;
+    :streetNumber 5 .
+
+# Job Role Individuals
+
+:Job_ComputerWizard a :JobRole ;
+    :jobTitle "computer wizard" ;
+    :canDoJob :Job_ComputerProgrammer ;
+    :canDoJob :Job_ComputerTechnician .
+
+:Job_ComputerProgrammer a :JobRole ;
+    :jobTitle "computer programmer" ;
+    :canDoJob :Job_ComputerProgrammerTrainee .
+
+:Job_ComputerTechnician a :JobRole ;
+    :jobTitle "computer technician" .
+
+:Job_ComputerProgrammerTrainee a :JobRole ;
+    :jobTitle "computer programmer trainee" .
+
+:Job_AdministrationBigWheel a :JobRole ;
+    :jobTitle "administration big wheel" .
+
+:Job_AdministrationSecretary a :JobRole ;
+    :jobTitle "administration secretary" ;
+    :canDoJob :Job_AdministrationBigWheel .
+
+:Job_AccountingChiefAccountant a :JobRole ;
+    :jobTitle "accounting chief accountant" .
+
+:Job_AccountingScrivener a :JobRole ;
+    :jobTitle "accounting scrivener" .
+
+# Property Definitions
+
+:hasAddress a rdf:Property ;
+    rdfs:label "has address" ;
+    rdfs:domain foaf:Person ;
+    rdfs:range :Address .
+
+:hasJob a rdf:Property ;
+    rdfs:label "has job" ;
+    rdfs:domain foaf:Person ;
+    rdfs:range :JobRole .
+
+:salary a rdf:Property ;
+    rdfs:label "salary" ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:integer .
+
+:city a rdf:Property ;
+    rdfs:label "city" ;
+    rdfs:domain :Address ;
+    rdfs:range xsd:string .
+
+:street a rdf:Property ;
+    rdfs:label "street" ;
+    rdfs:domain :Address ;
+    rdfs:range xsd:string .
+
+:streetNumber a rdf:Property ;
+    rdfs:label "street number" ;
+    rdfs:domain :Address ;
+    rdfs:range xsd:integer .
+
+:jobTitle a rdf:Property ;
+    rdfs:label "job title" ;
+    rdfs:domain :JobRole ;
+    rdfs:range xsd:string .
+
+:canDoJob a rdf:Property ;
+    rdfs:label "can do job" ;
+    rdfs:comment "Indicates that a person with one job role can also perform another job role" ;
+    rdfs:domain :JobRole ;
+    rdfs:range :JobRole .
+
+# Class Definitions
+
+:Address a rdfs:Class ;
+    rdfs:label "Address" ;
+    rdfs:comment "A physical address with city, street, and street number" .
+
+:JobRole a rdfs:Class ;
+    rdfs:label "Job Role" ;
+    rdfs:comment "A job position or role within the organization" .
