@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains the Query System implementation from Section 4.4.4 of *Structure and Interpretation of Computer Programs* (SICP). It's a logic programming system written in Scheme that supports pattern matching, rules, and queries similar to Prolog.
 
+The repository also includes an RDF/SPARQL version of the same database and queries, demonstrating how the SICP query concepts translate to modern semantic web technologies.
+
 ## Running the Query System
 
 The query system requires a Scheme interpreter that supports streams. To use it:
@@ -37,7 +39,61 @@ The query system requires a Scheme interpreter that supports streams. To use it:
    (assert! (job (Doe John) (computer programmer)))
    ```
 
-## Code Architecture
+## RDF/SPARQL Version
+
+The repository includes an RDF representation of the Microshaft database with equivalent SPARQL queries.
+
+### Files
+
+- `microshaft-data.ttl` - RDF Turtle file with the employee database
+- `sample-queries.sparql` - 21 SPARQL queries demonstrating query patterns
+- `run_queries.py` - Python script to execute queries using rdflib
+- `RDF-README.md` - Complete documentation for the RDF version
+
+### Running SPARQL Queries
+
+```bash
+# Install dependencies
+pip install rdflib
+# or
+sudo apt install python3-rdflib
+
+# List all available queries
+python3 run_queries.py --list
+
+# Run a specific query
+python3 run_queries.py --query 1
+
+# Run with verbose output (shows SPARQL text)
+python3 run_queries.py --query 5 --verbose
+
+# Run all queries interactively
+python3 run_queries.py
+```
+
+### RDF Schema
+
+The data uses standard vocabularies:
+- **FOAF**: `foaf:Person`, `foaf:name`
+- **ORG**: `org:reportsTo` for supervisor relationships
+- **Custom namespace** (`:`): `:hasAddress`, `:hasJob`, `:salary`, `:jobTitle`, `:canDoJob`
+
+### SPARQL vs Scheme Queries
+
+Key differences:
+- SPARQL uses property paths (`+`, `*`) for transitive closure instead of explicit rules
+- Aggregation functions (COUNT, AVG, MIN, MAX) not available in SICP system
+- Rules like `lives-near`, `wheel`, `outranked-by` are implemented as SPARQL patterns
+
+Example translation:
+
+| SICP Rule | SPARQL Implementation |
+|-----------|----------------------|
+| `(lives-near ?p1 ?p2)` | Filter on same city using JOIN |
+| `(wheel ?person)` | Nested pattern: `?x org:reportsTo ?mid . ?mid org:reportsTo ?person` |
+| `(outranked-by ?staff ?boss)` | Property path: `?staff org:reportsTo+ ?boss` |
+
+## Scheme Code Architecture
 
 ### Core Components
 
